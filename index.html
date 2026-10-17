@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&family=Montserrat:wght@500;600;700&display=swap">
-  <link rel="stylesheet" href="styles.css?v=202610152354">
+  <link rel="stylesheet" href="styles.css?v=202610180147">
   <script>
     document.documentElement.classList.add('js');
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.add('reduced');
@@ -101,9 +101,9 @@
         </div>
 
         <!-- VSL slot. No video yet, so this is an animated preview of the mechanism. -->
-        <figure class="vsl reveal" style="--d:4">
+        <figure class="vsl reveal" style="--d:4" data-anim>
           <div class="vsl__frame">
-            <svg class="vsl__art smil" viewBox="0 0 960 540" aria-hidden="true" focusable="false">
+            <svg class="vsl__art" viewBox="0 0 960 540" aria-hidden="true" focusable="false">
               <defs>
                 <radialGradient id="vsl-bg" cx="32%" cy="50%" r="70%">
                   <stop offset="0" stop-color="#14302c"/>
@@ -127,18 +127,6 @@
               <circle cx="280" cy="270" r="128" class="vsl__orbit"/>
               <circle cx="280" cy="270" r="92" class="vsl__core"/>
               <use href="#i-founder" x="222" y="208" width="120" height="120" class="vsl__head"/>
-              <g class="vsl__thoughts">
-                <animateTransform attributeName="transform" type="rotate" from="0 280 270" to="360 280 270" dur="24s" repeatCount="indefinite"/>
-                <circle cx="280" cy="142" r="5"/><circle cx="408" cy="270" r="4"/><circle cx="280" cy="398" r="5"/><circle cx="152" cy="270" r="4"/>
-                <circle cx="370" cy="180" r="3"/><circle cx="190" cy="360" r="3"/>
-              </g>
-              <!-- content packets travelling to platforms -->
-              <g class="vsl__packets">
-                <g><rect x="-17" y="-12" width="34" height="24" rx="6"/><path d="M-8 -3h16M-8 3h10"/><animateMotion dur="3.6s" repeatCount="indefinite" begin="0s"><mpath href="#vp1"/></animateMotion><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.12;.85;1" dur="3.6s" repeatCount="indefinite" begin="0s"/></g>
-                <g><rect x="-17" y="-12" width="34" height="24" rx="6"/><path d="M-4 -5l8 5-8 5z" class="fill"/><animateMotion dur="3.6s" repeatCount="indefinite" begin="0.9s"><mpath href="#vp2"/></animateMotion><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.12;.85;1" dur="3.6s" repeatCount="indefinite" begin="0.9s"/></g>
-                <g><rect x="-17" y="-12" width="34" height="24" rx="6"/><path d="M-8 -3h16M-8 3h10"/><animateMotion dur="3.6s" repeatCount="indefinite" begin="1.8s"><mpath href="#vp3"/></animateMotion><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.12;.85;1" dur="3.6s" repeatCount="indefinite" begin="1.8s"/></g>
-                <g><rect x="-17" y="-12" width="34" height="24" rx="6"/><path d="M-4 -5l8 5-8 5z" class="fill"/><animateMotion dur="3.6s" repeatCount="indefinite" begin="2.7s"><mpath href="#vp4"/></animateMotion><animate attributeName="opacity" values="0;1;1;0" keyTimes="0;.12;.85;1" dur="3.6s" repeatCount="indefinite" begin="2.7s"/></g>
-              </g>
               <!-- platforms -->
               <g class="vsl__platforms">
                 <g transform="translate(756 110)"><circle r="40"/><use href="#i-linkedin" x="-18" y="-18" width="36" height="36"/></g>
@@ -147,6 +135,10 @@
                 <g transform="translate(756 430)"><circle r="40"/><use href="#i-instagram" x="-18" y="-18" width="36" height="36"/></g>
               </g>
             </svg>
+            <!-- moving parts live in HTML so they animate on the GPU (packets are added by script.js) -->
+            <div class="vsl__flow" aria-hidden="true">
+              <span class="vsl__orbit"><i style="--a:-90deg;--s:10"></i><i style="--a:0deg;--s:8"></i><i style="--a:90deg;--s:10"></i><i style="--a:180deg;--s:8"></i><i style="--a:-45deg;--s:6"></i><i style="--a:135deg;--s:6"></i></span>
+            </div>
             <span class="vsl__tag"><span class="vsl__tag-dot" aria-hidden="true"></span>Video coming soon</span>
           </div>
           <figcaption class="visually-hidden">Illustration: a founder's ideas leave as posts and videos and travel to LinkedIn, X, YouTube and Instagram.</figcaption>
@@ -260,7 +252,7 @@
         <header class="section__head reveal">
           <h2 class="section__title" id="lev-title">This Isn't About Followers. <em class="text-gradient">It's About Leverage.</em></h2>
         </header>
-        <div class="lev reveal">
+        <div class="lev reveal" data-anim>
           <svg class="lev__spokes" aria-hidden="true"></svg>
           <div class="lev__founder" aria-hidden="true"><svg><use href="#i-founder"/></svg></div>
           <ul class="lev__nodes" role="list">
@@ -285,7 +277,7 @@
           <p class="section__lede">Founder content doesn't only create organic discovery. It changes what happens when someone discovers your company somewhere else.</p>
         </header>
         <figure class="gtm reveal">
-          <div class="gtm__art" data-gtm aria-hidden="true"></div>
+          <div class="gtm__art" data-gtm data-anim aria-hidden="true"></div>
           <figcaption class="gtm__legend">
             <span><i class="dot dot--cold"></i>Cold prospect</span>
             <span><i class="dot dot--warm"></i>Familiar — has seen your thinking</span>
@@ -323,7 +315,7 @@
             </ol>
             <div class="engine__progress" aria-hidden="true"><span></span></div>
           </div>
-          <div class="engine__stage" data-step="1" aria-hidden="true">
+          <div class="engine__stage" data-step="1" data-anim aria-hidden="true">
             <svg class="engine__loop" viewBox="0 0 100 30"><path d="M70 22 C 58 30, 26 31, 15 8" pathLength="1"/></svg>
             <div class="engine__founder"><span class="engine__wheel"></span><svg><use href="#i-founder"/></svg></div>
             <div class="asset" style="--i:0"><span class="asset__a">Story</span><span class="asset__b"><svg class="icon"><use href="#i-video"/></svg>Video</span><span class="metric">retention</span></div>
@@ -345,7 +337,7 @@
     <!-- 8. Platform distribution ------------------------------------------- -->
     <section class="section" id="platforms" aria-labelledby="plat-title">
       <div class="container plat">
-        <div class="plat__orbit reveal" aria-hidden="true">
+        <div class="plat__orbit reveal" data-anim aria-hidden="true">
           <span class="plat__ring"></span>
           <div class="plat__founder"><svg><use href="#i-founder"/></svg></div>
           <div class="plat__spin">
@@ -513,7 +505,7 @@
         <header class="section__head reveal">
           <h2 class="section__title" id="work-title">You Supply the Expertise. <em class="text-gradient">We Run the&nbsp;Machine.</em></h2>
         </header>
-        <div class="work reveal">
+        <div class="work reveal" data-anim>
           <div class="work__you">
             <p class="work__label">You</p>
             <ul class="work__big" role="list"><li>Think</li><li>Talk</li><li>Build</li></ul>
@@ -537,7 +529,7 @@
           <h2 class="section__title" id="eco-title">The System Can Expand With You.</h2>
           <p class="section__lede">Founder-led distribution is where we start. As the relationship expands, the same creative and distribution infrastructure can support the rest of the company.</p>
         </header>
-        <div class="eco reveal">
+        <div class="eco reveal" data-anim>
           <svg class="eco__lines" aria-hidden="true"></svg>
           <p class="eco__core">Founder-Led Distribution</p>
           <ul class="eco__mods" role="list" aria-label="Later modules">
@@ -583,55 +575,39 @@
       </div>
     </section>
 
-    <!-- 17. CTA / application ---------------------------------------------- -->
+    <!-- 17. CTA / booking (Cal.com) ------------------------------------------ -->
     <section class="section" id="apply" aria-labelledby="apply-title">
       <div class="container">
-        <div class="apply reveal">
-          <div class="apply__copy">
-            <h2 class="section__title section__title--left" id="apply-title">Let's See If You&nbsp;Qualify.</h2>
-            <p>We'll review your company, market, founder, and current distribution.</p>
-            <p>If we believe we can execute the guarantee, we'll show you exactly how we'd approach it.</p>
-            <p class="apply__honest">If we don't think it's a fit, we'll tell you.</p>
+        <header class="section__head reveal">
+          <p class="eyebrow">Apply for the 1M Views Pilot</p>
+          <h2 class="section__title" id="apply-title">Let's See If You&nbsp;Qualify.</h2>
+          <p class="section__lede">We'll review your company, market, founder, and current distribution. If we believe we can execute the guarantee, we'll show you exactly how we'd approach it. <strong class="apply__honest">If we don't think it's a fit, we'll tell you.</strong></p>
+        </header>
+        <div class="booking reveal" data-anim>
+          <div class="booking__head">
+            <span class="booking__dot" aria-hidden="true"></span>
+            <p class="booking__title">Founder Distribution Audit <span>· 30 min</span></p>
+            <p class="booking__sub">Pick a time to book directly.</p>
           </div>
-          <form class="apply__form" id="apply-form" novalidate>
-            <p class="apply__form-title">Apply for the 1M Views Pilot</p>
-            <div class="field">
-              <label for="f-name">Your name</label>
-              <input id="f-name" name="name" type="text" autocomplete="name" required>
+          <!-- Cal.com inline widget is loaded by script.js when this section approaches -->
+          <div class="booking__embed" id="cal-booking" aria-busy="true">
+            <div class="booking__loading" role="status">
+              <span class="booking__spinner" aria-hidden="true"></span>
+              <span class="booking__loading-text">Loading the booking calendar…</span>
+              <a class="booking__fallback" href="https://cal.com/k-c-gd52m2/30min" target="_blank" rel="noopener">Open the booking page instead</a>
             </div>
-            <div class="field">
-              <label for="f-email">Work email</label>
-              <input id="f-email" name="email" type="email" autocomplete="email" required>
-            </div>
-            <div class="field-row">
-              <div class="field">
-                <label for="f-company">Company</label>
-                <input id="f-company" name="company" type="text" autocomplete="organization" required>
-              </div>
-              <div class="field">
-                <label for="f-site">Website <span class="opt">(optional)</span></label>
-                <input id="f-site" name="website" type="text" inputmode="url" autocomplete="url">
-              </div>
-            </div>
-            <div class="field">
-              <label for="f-about">What are you building, and where do you publish today?</label>
-              <textarea id="f-about" name="about" rows="4"></textarea>
-            </div>
-            <p class="form-error" role="alert" aria-live="assertive"></p>
-            <button class="btn btn--primary btn--lg apply__submit" type="submit">
-              Apply for the 1M Views Pilot
-              <svg class="icon icon--arrow" aria-hidden="true"><use href="#i-arrow"/></svg>
+          </div>
+        </div>
+        <div class="booking__alt">
+          <p>Calendar not loading? <a href="https://cal.com/k-c-gd52m2/30min" target="_blank" rel="noopener">Open the booking page</a> or email us:</p>
+          <div class="email-chip">
+            <a href="mailto:hello@omnireachstudios.com?subject=1M%20Views%20Pilot">hello@omnireachstudios.com</a>
+            <button class="copy-btn" type="button" data-copy="hello@omnireachstudios.com">
+              <svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg>
+              <span class="copy-btn__label">Copy</span>
             </button>
-            <p class="apply__fine">Submitting opens your email app with your application ready to send to OmniReach. Prefer to write yourself?</p>
-            <div class="email-chip">
-              <a href="mailto:hello@omnireachstudios.com?subject=1M%20Views%20Pilot%20application">hello@omnireachstudios.com</a>
-              <button class="copy-btn" type="button" data-copy="hello@omnireachstudios.com">
-                <svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg>
-                <span class="copy-btn__label">Copy</span>
-              </button>
-            </div>
-            <p class="copy-status" role="status" aria-live="polite"></p>
-          </form>
+          </div>
+          <p class="copy-status" role="status" aria-live="polite"></p>
         </div>
       </div>
     </section>
@@ -704,6 +680,6 @@
     </div>
   </footer>
 
-  <script src="script.js?v=202610152354" defer></script>
+  <script src="script.js?v=202610180147" defer></script>
 </body>
 </html>

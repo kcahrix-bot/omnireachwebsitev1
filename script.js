@@ -144,7 +144,7 @@
     el('stop', { offset: 0.5, 'stop-color': '#2ee8cf', 'stop-opacity': 0.24 }, g);
     el('stop', { offset: 1, 'stop-color': '#2ee8cf', 'stop-opacity': 0.08 }, g);
 
-    var routes = el('g', {}, svg), chans = el('g', {}, svg), avatars = el('g', {}, svg);
+    var routes = el('g', {}, svg), chans = el('g', {}, svg);
     var paths = [];
     CHANNELS.forEach(function (c, i) {
       var x, y, d, gc = el('g', { class: 'chan' }, chans);
@@ -188,28 +188,85 @@
       var ct2 = el('text', { x: 826, y: 255, 'font-size': 15 }, conv); ct2.textContent = 'Sales Conversation';
     }
     // prospects travelling through the layer: grey before, teal after
-    var r = vertical ? 9 : 11;
-    for (var n = 0; n < 12; n++) {
-      var i = n % 6, begin = (i * 1 + (n >= 6 ? 3 : 0)) + 's';
-      var a = el('g', { class: 'avatar', opacity: 0 }, avatars);
-      var circ = el('circle', { r: r, fill: '#59646a' }, a);
-      el('use', { href: '#i-user', x: -r * 0.62, y: -r * 0.62, width: r * 1.24, height: r * 1.24 }, a);
-      var mo = el('animateMotion', { dur: '6s', begin: begin, repeatCount: 'indefinite' }, a);
-      el('mpath', { href: '#gtm-r' + i }, mo);
-      el('animate', { attributeName: 'opacity', values: '0;1;1;0', keyTimes: '0;0.06;0.9;1', dur: '6s', begin: begin, repeatCount: 'indefinite' }, a);
-      el('animate', { attributeName: 'fill', values: '#59646a;#59646a;#2ee8cf;#2ee8cf', keyTimes: '0;0.5;0.56;1', dur: '6s', begin: begin, repeatCount: 'indefinite' }, circ);
+    var layerEl = document.createElement('div');
+    layerEl.className = 'flow-layer';
+    gtmBox.appendChild(layerEl);
+    var set = { box: gtmBox, W: W, items: [] }, r = vertical ? 9 : 11;
+    for (var n = 0; n < (vertical ? 6 : 12); n++) {
+      var i = n % 6;
+      var av = document.createElement('span');
+      av.className = 'flow-item gtm-av';
+      av.style.setProperty('--size', (2 * r / W * 100).toFixed(3) + 'cqw');
+      av.innerHTML = '<span class="gtm-av__cold"></span><span class="gtm-av__warm"></span><svg viewBox="0 0 24 24"><use href="#i-user"/></svg>';
+      layerEl.appendChild(av);
+      set.items.push({ node: av, path: paths[i], dur: 6000, delay: -(i + (n >= 6 ? 3 : 0)) * 1000, fade: [0.06, 0.9], warm: $('.gtm-av__warm', av), rest: 0.14 + i * 0.13 + (n >= 6 ? 0.06 : 0) });
     }
-    if (reduced) freezeSMIL(svg);
+    startFlow(set);
   }
-  function freezeSMIL(svg) {
-    try { svg.setCurrentTime(3.2); svg.pauseAnimations(); } catch (e) { /* older engines */ }
+
+  /* ---------- Travellers along SVG paths ----------
+     Moving dots/cards are HTML layered over the SVG and animated with transform/opacity
+     (Web Animations API), so the browser composites them on the GPU instead of re-laying-out
+     the SVG every frame the way SVG <animateMotion> does. Paths are sampled at constant speed. */
+  var flowSets = [];
+  function startFlow(set) {
+    if (flowSets.indexOf(set) < 0) flowSets.push(set);
+    // drop sets whose box was rebuilt
+    flowSets = flowSets.filter(function (s) { return s === set || s.box.isConnected && s.items.every(function (it) { return it.node.isConnected; }); });
+    var scale = set.box.clientWidth / set.W;
+    if (!scale) return;
+    set.items.forEach(function (it) {
+      var len, pts = [];
+      try { len = it.path.getTotalLength(); } catch (e) { return; }
+      var N = 48;
+      for (var k = 0; k <= N; k++) {
+        var pt = it.path.getPointAtLength(len * k / N);
+        pts.push({ transform: 'translate3d(' + (pt.x * scale).toFixed(1) + 'px,' + (pt.y * scale).toFixed(1) + 'px,0) translate(-50%,-50%)' });
+      }
+      var keep = it.move ? it.move.currentTime : null;
+      (it.anims || []).forEach(function (a) { a.cancel(); });
+      if (reduced) {
+        // one calm, still frame: each traveller parked partway along its route
+        it.node.style.transform = pts[Math.round(N * it.rest)].transform;
+        it.node.style.opacity = 1;
+        if (it.warm) it.warm.style.opacity = it.rest > 0.53 ? 1 : 0;
+        return;
+      }
+      var timing = { duration: it.dur, delay: it.delay, iterations: Infinity, easing: 'linear', fill: 'backwards' };
+      it.move = it.node.animate(pts, timing);
+      var fade = it.node.animate([{ opacity: 0 }, { opacity: 1, offset: it.fade[0] }, { opacity: 1, offset: it.fade[1] }, { opacity: 0 }], timing);
+      it.anims = [it.move, fade];
+      if (it.warm) it.anims.push(it.warm.animate([{ opacity: 0 }, { opacity: 0, offset: 0.5 }, { opacity: 1, offset: 0.56 }, { opacity: 1 }], timing));
+      it.anims.forEach(function (a) { a.id = 'flow'; if (keep !== null) a.currentTime = keep; });
+    });
   }
+  var flowTimer;
+  window.addEventListener('resize', function () {
+    clearTimeout(flowTimer);
+    flowTimer = setTimeout(function () { flowSets.forEach(startFlow); }, 150);
+  });
+
+  // hero VSL preview: content packets travel from the founder to each platform; thoughts orbit
+  var vslFrame = $('.vsl__frame');
+  if (vslFrame) {
+    var vsvg = $('.vsl__art', vslFrame), vlayer = $('.vsl__flow', vslFrame);
+    var vset = { box: vslFrame, W: 960, items: [] };
+    ['vp1', 'vp2', 'vp3', 'vp4'].forEach(function (id, k) {
+      var pk = document.createElement('span');
+      pk.className = 'flow-item vsl__packet';
+      pk.innerHTML = '<svg viewBox="-19 -14 38 28"><rect x="-17" y="-12" width="34" height="24" rx="6"/>' +
+        (k % 2 ? '<path class="fill" d="M-4 -5l8 5-8 5z"/>' : '<path d="M-8 -3h16M-8 3h10"/>') + '</svg>';
+      vlayer.appendChild(pk);
+      vset.items.push({ node: pk, path: vsvg.querySelector('#' + id), dur: 3600, delay: -k * 900, fade: [0.12, 0.85], rest: 0.35 + k * 0.12 });
+    });
+    startFlow(vset);
+  }
+
   if (gtmBox) {
     var gtmQuery = window.matchMedia('(max-width: 700px)');
     buildGTM(gtmQuery.matches);
     gtmQuery.addEventListener('change', function () { buildGTM(gtmQuery.matches); });
   }
-  if (reduced) $$('svg.smil').forEach(freezeSMIL);
 
   /* ---------- Scroll reveals ---------- */
   var revealEls = $$('.reveal');
@@ -228,45 +285,117 @@
     revealEls.forEach(function (r) { io.observe(r); });
   }
 
-  /* ---------- Scroll-driven scenes ---------- */
-  var vh = window.innerHeight;
-  // progress through a sticky scene: 0 when it pins, 1 when it unpins
-  function stickyProgress(sec) {
-    var r = sec.getBoundingClientRect();
-    return clamp(-r.top / Math.max(1, r.height - vh));
-  }
-  // progress of an element passing through the viewport
-  function passProgress(node) {
-    var r = node.getBoundingClientRect();
-    return clamp((vh - r.top) / (vh + r.height));
-  }
-
+  /* ---------- Scroll-driven scenes ----------
+     Geometry is measured once (and again only when the layout changes), so scrolling
+     never forces a layout: each frame reads scrollY and writes transform/opacity only,
+     and only for scenes that are near the viewport and whose progress has changed. */
+  var vh = window.innerHeight, vw = window.innerWidth;
   var scenes = [];
-
-  // 2. proof rail drifts sideways as you scroll
-  var rail = $('[data-scene="rail"]');
-  if (rail && !reduced) {
-    var track = $('.rail__track', rail);
-    scenes.push(function () {
-      var over = track.scrollWidth - rail.clientWidth;
-      var shift = over > 0 ? -over * passProgress(rail) : 0;
-      track.style.setProperty('--shift', shift.toFixed(1) + 'px');
+  function addScene(sel, opts) {
+    var node = $(sel);
+    if (!node) return null;
+    var s = { el: node, sticky: !!opts.sticky, render: opts.render, measure: opts.measure, top: 0, h: 0, last: -1 };
+    scenes.push(s);
+    return s;
+  }
+  function progressOf(s, y) {
+    if (s.sticky) return clamp((y - s.top) / Math.max(1, s.h - vh)); // 0 when it pins, 1 when it unpins
+    return clamp((y + vh - s.top) / (vh + s.h));                       // passing through the viewport
+  }
+  function measureAll() {
+    vh = window.innerHeight; vw = window.innerWidth;
+    var y = window.scrollY;
+    scenes.forEach(function (s) {
+      var r = s.el.getBoundingClientRect();
+      s.top = r.top + y; s.h = r.height; s.last = -1;
+      if (s.measure) s.measure.call(s);
     });
+  }
+
+  if (!reduced) {
+    // 2. proof rail drifts sideways as you scroll
+    var track = $('.rail__track'), railW = 0, trackW = 0;
+    addScene('[data-scene="rail"]', {
+      measure: function () { railW = this.el.clientWidth; trackW = track.scrollWidth; },
+      render: function (p) {
+        var over = trackW - railW;
+        track.style.transform = 'translate3d(' + (over > 0 ? -over * p : 0).toFixed(1) + 'px,0,0)';
+      }
+    });
+
+    // 4. Founder B accumulates signals; Founder A stays still
+    var rungs = $$('.ladder:not(.ladder--static) li'), lastCount = -1;
+    addScene('.ladder:not(.ladder--static)', {
+      render: function (p) {
+        var count = Math.round(clamp((p - 0.22) / 0.5) * rungs.length);
+        if (count === lastCount) return;
+        lastCount = count;
+        rungs.forEach(function (li, i) { li.classList.toggle('on', i < count); });
+      }
+    });
+
+    // 7. engine: five steps pinned to scroll
+    var engine = $('[data-scene="engine"]');
+    if (engine) {
+      var eStage = $('.engine__stage', engine), eSteps = $$('.step', engine), eBar = $('.engine__progress span', engine), eStep = 0, eLive = null;
+      addScene('[data-scene="engine"]', {
+        sticky: true,
+        render: function (p, y) {
+          var live = y > this.top - vh * 0.5;
+          if (live !== eLive) { eLive = live; engine.classList.toggle('is-live', live); }
+          var step = Math.min(5, Math.floor(p * 5) + 1);
+          if (step !== eStep) {
+            eStep = step;
+            eStage.setAttribute('data-step', String(step));
+            eSteps.forEach(function (st, i) { st.classList.toggle('is-active', i === step - 1); });
+          }
+          eBar.style.transform = 'scaleX(' + p.toFixed(3) + ')';
+        }
+      });
+    }
+
+    // 11. 1,000,000 breaks apart into what it actually means
+    var burst = $('[data-scene="burst"]');
+    if (burst) {
+      var bBox = $('.burst', burst), digits = $$('.burst__num span', burst), words = $$('.burst__word', burst), num = $('.burst__num', burst);
+      var bW = 0, bH = 0;
+      var WIDE = [[17, 18], [50, 9], [83, 18], [12, 50], [88, 50], [17, 82], [50, 91], [83, 82], [50, 50]];
+      var NARROW = [[30, 8], [70, 19], [30, 30], [70, 41], [30, 61], [70, 72], [30, 83], [70, 94], [50, 50]];
+      addScene('[data-scene="burst"]', {
+        sticky: true,
+        measure: function () { bW = bBox.clientWidth; bH = bBox.clientHeight; },
+        render: function (p) {
+          var t = smooth((p - 0.08) / 0.5);
+          num.style.transform = 'scale(' + (1 - 0.25 * t).toFixed(3) + ')';
+          digits.forEach(function (d, i) {
+            var dx = (i - 4) * 46 + Math.sin(i * 2.1) * 40, dy = Math.cos(i * 1.7) * 140;
+            d.style.transform = 'translate3d(' + (dx * t).toFixed(1) + 'px,' + (dy * t).toFixed(1) + 'px,0) rotate(' + ((i % 2 ? 1 : -1) * 18 * t).toFixed(1) + 'deg)';
+            d.style.opacity = clamp(1 - t * 1.3).toFixed(3);
+          });
+          var pos = vw < 700 ? NARROW : WIDE, tw = clamp((p - 0.25) / 0.55);
+          words.forEach(function (w, k) {
+            var o = smooth(tw * 1.7 - k * 0.08);
+            var x = (pos[k][0] - 50) / 100 * bW * o, yy = (pos[k][1] - 50) / 100 * bH * o;
+            w.style.transform = 'translate3d(' + x.toFixed(1) + 'px,' + yy.toFixed(1) + 'px,0) scale(' + (0.85 + 0.15 * o).toFixed(3) + ')';
+            w.style.opacity = o.toFixed(3);
+          });
+        }
+      });
+    }
   }
 
   // 3. opportunity: ideas spiral out, become platforms, then reach the market
   var opp = $('[data-scene="opp"]');
   if (opp) {
-    var stage = $('.opp__stage', opp);
+    var stage = $('.opp__stage', opp), R = 0, small = false;
     var ideas = $$('.node--idea', stage), plats = $$('.node--platform', stage), market = $$('.node--market', stage);
-    var phases = $$('.phase', opp);
+    var phases = $$('.phase', opp), lastPhase = -1;
     var place = function (n, x, y, s, o) {
-      n.style.transform = 'translate(-50%, -50%) translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px) scale(' + s.toFixed(3) + ')';
+      n.style.transform = 'translate(-50%,-50%) translate3d(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px,0) scale(' + s.toFixed(3) + ')';
       n.style.opacity = o.toFixed(3);
     };
     var renderOpp = function (p, staticLayout) {
-      var R = stage.clientWidth / 2, TAU = Math.PI * 2;
-      var small = stage.clientWidth < 460;
+      var TAU = Math.PI * 2;
       var platPos = plats.map(function (_, j) {
         var a = j / 4 * TAU - Math.PI / 4 + (staticLayout ? 0 : p * 0.9);
         var rr = R * (staticLayout ? 0.66 : 0.5);
@@ -277,97 +406,71 @@
       ideas.forEach(function (n, i) {
         var a = i / ideas.length * TAU - Math.PI / 2 + (1 - tA) * 1.8;
         var rr = R * (staticLayout ? 0.4 : (0.16 + (small ? 0.56 : 0.58) * tA));
-        var x = Math.cos(a) * rr, y = Math.sin(a) * rr;
         var tp = platPos[i % 4];
-        place(n, lerp(x, tp[0], tB), lerp(y, tp[1], tB), (0.7 + 0.3 * tA) * (1 - 0.5 * tB), tA * (1 - tB));
+        place(n, lerp(Math.cos(a) * rr, tp[0], tB), lerp(Math.sin(a) * rr, tp[1], tB), (0.7 + 0.3 * tA) * (1 - 0.5 * tB), tA * (1 - tB));
       });
       var tP = staticLayout ? 1 : smooth((p - 0.42) / 0.1);
       plats.forEach(function (n, j) { place(n, platPos[j][0], platPos[j][1], 0.8 + 0.2 * tP, tP); });
       var tC = staticLayout ? 1 : smooth((p - 0.68) / 0.22);
       market.forEach(function (n, k) {
         var a = k / market.length * TAU - Math.PI / 2 + (1 - tC) * -0.9;
-        var rr = R * lerp(0.5, small ? 0.8 : 0.88, tC);
-        if (staticLayout) rr = R * (small ? 0.84 : 0.9);
+        var rr = staticLayout ? R * (small ? 0.84 : 0.9) : R * lerp(0.5, small ? 0.8 : 0.88, tC);
         place(n, Math.cos(a) * rr, Math.sin(a) * rr, 0.85 + 0.15 * tC, tC);
       });
       if (!staticLayout) {
         var ph = p < 0.4 ? 0 : p < 0.68 ? 1 : 2;
-        phases.forEach(function (li, i) { li.classList.toggle('is-active', i === ph); });
+        if (ph !== lastPhase) { lastPhase = ph; phases.forEach(function (li, i) { li.classList.toggle('is-active', i === ph); }); }
       }
     };
-    if (reduced) { renderOpp(1, true); window.addEventListener('resize', function () { renderOpp(1, true); }); }
-    else scenes.push(function () { renderOpp(stickyProgress(opp), false); });
-  }
-
-  // 4. Founder B accumulates signals; Founder A stays still
-  var ladder = $('.ladder:not(.ladder--static)');
-  if (ladder && !reduced) {
-    var rungs = $$('li', ladder);
-    scenes.push(function () {
-      var r = ladder.getBoundingClientRect();
-      var t = clamp((vh * 0.92 - r.top) / (r.height + vh * 0.35));
-      var count = Math.round(t * rungs.length);
-      rungs.forEach(function (li, i) { li.classList.toggle('on', i < count); });
-    });
-  }
-
-  // 7. engine: five steps pinned to scroll
-  var engine = $('[data-scene="engine"]');
-  if (engine) {
-    var eStage = $('.engine__stage', engine), eSteps = $$('.step', engine), eProg = $('.engine__progress', engine);
-    if (reduced) { eStage.setAttribute('data-step', '5'); engine.classList.add('is-live'); }
-    else scenes.push(function () {
-      var r = engine.getBoundingClientRect();
-      engine.classList.toggle('is-live', r.top < vh * 0.5);
-      var p = stickyProgress(engine);
-      var step = Math.min(5, Math.floor(p * 5) + 1);
-      if (eStage.getAttribute('data-step') !== String(step)) {
-        eStage.setAttribute('data-step', String(step));
-        eSteps.forEach(function (s, i) { s.classList.toggle('is-active', i === step - 1); });
-      }
-      eProg.style.setProperty('--prog', p.toFixed(3));
-    });
-  }
-
-  // 11. 1,000,000 breaks apart into what it actually means
-  var burstScene = $('[data-scene="burst"]');
-  if (burstScene && !reduced) {
-    var digits = $$('.burst__num span', burstScene), words = $$('.burst__word', burstScene), num = $('.burst__num', burstScene);
-    var WIDE = [[17, 18], [50, 9], [83, 18], [12, 50], [88, 50], [17, 82], [50, 91], [83, 82], [50, 50]];
-    var NARROW = [[30, 8], [70, 19], [30, 30], [70, 41], [30, 61], [70, 72], [30, 83], [70, 94], [50, 50]];
-    scenes.push(function () {
-      var p = stickyProgress(burstScene);
-      var t = smooth((p - 0.08) / 0.5);
-      num.style.scale = (1 - 0.25 * t).toFixed(3);
-      digits.forEach(function (d, i) {
-        var dx = (i - 4) * 46 + Math.sin(i * 2.1) * 40, dy = Math.cos(i * 1.7) * 140;
-        d.style.transform = 'translate(' + (dx * t).toFixed(1) + 'px,' + (dy * t).toFixed(1) + 'px) rotate(' + ((i % 2 ? 1 : -1) * 18 * t).toFixed(1) + 'deg)';
-        d.style.opacity = clamp(1 - t * 1.3).toFixed(3);
-      });
-      var pos = window.innerWidth < 700 ? NARROW : WIDE;
-      var tw = clamp((p - 0.25) / 0.55);
-      words.forEach(function (w, k) {
-        var o = smooth(tw * 1.7 - k * 0.08);
-        w.style.left = lerp(50, pos[k][0], o) + '%';
-        w.style.top = lerp(50, pos[k][1], o) + '%';
-        w.style.opacity = o.toFixed(3);
-        w.style.scale = (0.85 + 0.15 * o).toFixed(3);
-      });
-    });
-  } else if (burstScene) {
-    // static fallback handled in CSS
+    var measureOpp = function () { R = stage.clientWidth / 2; small = stage.clientWidth < 460; };
+    if (reduced) {
+      var staticOpp = function () { measureOpp(); renderOpp(1, true); };
+      staticOpp();
+      window.addEventListener('resize', staticOpp);
+    } else {
+      addScene('[data-scene="opp"]', { sticky: true, measure: measureOpp, render: function (p) { renderOpp(p, false); } });
+    }
   }
 
   var ticking = false;
   function frame() {
     ticking = false;
+    var y = window.scrollY;
     onHeader();
-    for (var i = 0; i < scenes.length; i++) scenes[i]();
+    for (var i = 0; i < scenes.length; i++) {
+      var s = scenes[i];
+      if (y + vh < s.top - vh * 0.5 || y > s.top + s.h + vh * 0.5) continue; // far from view: skip entirely
+      var p = progressOf(s, y);
+      if (p === s.last) continue;
+      s.last = p;
+      s.render(p, y);
+    }
   }
   function requestFrame() { if (!ticking) { ticking = true; requestAnimationFrame(frame); } }
+  function remeasure() { measureAll(); requestFrame(); }
+  var remeasureTimer;
+  function remeasureSoon() { clearTimeout(remeasureTimer); remeasureTimer = setTimeout(remeasure, 120); }
   window.addEventListener('scroll', requestFrame, { passive: true });
-  window.addEventListener('resize', function () { vh = window.innerHeight; requestFrame(); });
+  window.addEventListener('resize', remeasureSoon);
+  // anything that changes the page height (fonts, FAQ, diagram rebuilds, the booking widget) re-measures
+  if ('ResizeObserver' in window) new ResizeObserver(remeasureSoon).observe($('main'));
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(remeasure);
+  measureAll();
   frame();
+
+  /* ---------- Pause looping animations while they're off-screen ---------- */
+  if ('IntersectionObserver' in window && !reduced) {
+    var animIO = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        var off = !en.isIntersecting;
+        en.target.classList.toggle('is-paused', off);
+        if (en.target.getAnimations) en.target.getAnimations({ subtree: true }).forEach(function (a) {
+          if (a.id === 'flow') { if (off) a.pause(); else a.play(); }
+        });
+      });
+    }, { rootMargin: '120px 0px' });
+    $$('[data-anim]').forEach(function (n) { animIO.observe(n); });
+  }
 
   /* ---------- Platforms: link roles to orbit nodes ---------- */
   $$('.role[data-plat]').forEach(function (role) {
@@ -391,38 +494,57 @@
     });
   });
 
-  /* ---------- Application form → email ---------- */
-  var form = $('#apply-form');
-  if (form) {
-    var err = $('.form-error', form);
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      var f = form.elements, problems = [], firstBad = null;
-      [['name', 'your name'], ['email', 'a valid work email'], ['company', 'your company']].forEach(function (pair) {
-        var input = f[pair[0]], v = input.value.trim();
-        var bad = !v || (pair[0] === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v));
-        input.setAttribute('aria-invalid', String(bad));
-        if (bad) { problems.push(pair[1]); if (!firstBad) firstBad = input; }
-      });
-      if (problems.length) {
-        err.textContent = 'Please add ' + problems.join(', ') + '.';
-        firstBad.focus();
-        return;
-      }
-      err.textContent = '';
-      var body = [
-        'Name: ' + f.name.value.trim(),
-        'Email: ' + f.email.value.trim(),
-        'Company: ' + f.company.value.trim(),
-        'Website: ' + (f.website.value.trim() || '-'),
-        '',
-        'What we are building / where we publish today:',
-        f.about.value.trim() || '-'
-      ].join('\n');
-      var subject = '1M Views Pilot application — ' + f.company.value.trim();
-      window.location.href = 'mailto:hello@omnireachstudios.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
-      $('.copy-status').textContent = 'Your email app should open with the application ready to send. If it didn’t, email hello@omnireachstudios.com directly.';
-    });
+  /* ---------- Cal.com booking widget ----------
+     Loaded only when the booking section approaches (or a "See If You Qualify" link is used),
+     so the calendar never slows down the top of the page. */
+  var calBox = $('#cal-booking');
+  if (calBox) {
+    var calStarted = false;
+    var loadCal = function () {
+      if (calStarted) return;
+      calStarted = true;
+      // official Cal.com embed loader
+      (function (C, A, L) {
+        var p = function (a, ar) { a.q.push(ar); };
+        var d = C.document;
+        C.Cal = C.Cal || function () {
+          var cal = C.Cal, ar = arguments;
+          if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement('script')).src = A; cal.loaded = true; }
+          if (ar[0] === L) {
+            var api = function () { p(api, arguments); };
+            var namespace = ar[1];
+            api.q = api.q || [];
+            if (typeof namespace === 'string') { cal.ns[namespace] = cal.ns[namespace] || api; p(cal.ns[namespace], ar); p(cal, ['initNamespace', namespace]); }
+            else p(cal, ar);
+            return;
+          }
+          p(cal, ar);
+        };
+      })(window, 'https://app.cal.com/embed/embed.js', 'init');
+
+      // Prefill whatever we already know. Links in outbound emails can carry details,
+      // e.g. ?name=Jane%20Doe&email=jane@acme.com, plus utm_* campaign tags.
+      var q = new URLSearchParams(window.location.search);
+      var config = { layout: 'month_view', theme: 'dark', 'metadata[source]': 'omnireach-landing-page' };
+      ['name', 'email', 'notes', 'guests'].forEach(function (k) { if (q.get(k)) config[k] = q.get(k); });
+      q.forEach(function (v, k) { if (/^utm_/.test(k)) config[k] = v; });
+
+      window.Cal('init', 'audit', { origin: 'https://cal.com' });
+      window.Cal.ns.audit('inline', { elementOrSelector: '#cal-booking', calLink: 'k-c-gd52m2/30min', config: config });
+      window.Cal.ns.audit('ui', { theme: 'dark', styles: { body: { background: 'transparent' } }, cssVarsPerTheme: { dark: { 'cal-brand': '#2ee8cf' } }, hideEventTypeDetails: false, layout: 'month_view' });
+      window.Cal.ns.audit('on', { action: 'linkReady', callback: function () { calBox.classList.add('is-ready'); calBox.removeAttribute('aria-busy'); } });
+      window.Cal.ns.audit('on', { action: 'linkFailed', callback: function () { calBox.classList.add('is-slow'); } });
+      setTimeout(function () { if (!calBox.classList.contains('is-ready')) calBox.classList.add('is-slow'); }, 12000);
+    };
+    if ('IntersectionObserver' in window) {
+      var calIO = new IntersectionObserver(function (entries) {
+        if (entries.some(function (en) { return en.isIntersecting; })) { calIO.disconnect(); loadCal(); }
+      }, { rootMargin: '1200px 0px' });
+      calIO.observe(calBox);
+    } else {
+      loadCal();
+    }
+    $$('a[href="#apply"]').forEach(function (a) { a.addEventListener('click', loadCal); });
   }
 
   /* ---------- Copy email ---------- */
