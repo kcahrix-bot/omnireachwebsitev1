@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&family=Montserrat:wght@500;600;700&display=swap">
-  <link rel="stylesheet" href="styles.css?v=202610180147">
+  <link rel="stylesheet" href="styles.css?v=202610280125">
   <script>
     document.documentElement.classList.add('js');
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) document.documentElement.classList.add('reduced');
@@ -100,7 +100,7 @@
           <p class="hero__note">We review your company, founder, market, and current content presence before accepting an engagement.</p>
         </div>
 
-        <!-- VSL slot. No video yet, so this is an animated preview of the mechanism. -->
+        <!-- VSL: animated preview of the mechanism as the poster, Vimeo video 1239774507 on play. -->
         <figure class="vsl reveal" style="--d:4" data-anim>
           <div class="vsl__frame">
             <svg class="vsl__art" viewBox="0 0 960 540" aria-hidden="true" focusable="false">
@@ -139,31 +139,127 @@
             <div class="vsl__flow" aria-hidden="true">
               <span class="vsl__orbit"><i style="--a:-90deg;--s:10"></i><i style="--a:0deg;--s:8"></i><i style="--a:90deg;--s:10"></i><i style="--a:180deg;--s:8"></i><i style="--a:-45deg;--s:6"></i><i style="--a:135deg;--s:6"></i></span>
             </div>
-            <span class="vsl__tag"><span class="vsl__tag-dot" aria-hidden="true"></span>Video coming soon</span>
+            <!-- Click-to-play: the Vimeo player loads only when someone presses play (script.js swaps it in).
+                 Without JavaScript this link simply opens the video on Vimeo. -->
+            <a class="vsl__play" href="https://vimeo.com/1239774507" data-vimeo="1239774507" target="_blank" rel="noopener">
+              <span class="vsl__play-btn" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5.2v13.6L19 12z"/></svg></span>
+              <span class="vsl__play-label">Watch the overview</span>
+            </a>
           </div>
-          <figcaption class="visually-hidden">Illustration: a founder's ideas leave as posts and videos and travel to LinkedIn, X, YouTube and Instagram.</figcaption>
+          <figcaption class="visually-hidden">Overview video. Preview illustration: a founder's ideas leave as posts and videos and travel to LinkedIn, X, YouTube and Instagram.</figcaption>
         </figure>
 
       </div>
     </section>
 
-    <!-- 2. Immediate proof ------------------------------------------------- -->
-    <section class="proof" id="proof" aria-labelledby="proof-title">
+    <!-- 2. Proof: attention at scale (numbers count up when they scroll into view) -->
+    <section class="stats" id="proof" aria-labelledby="stats-title">
       <div class="container">
-        <h2 class="proof__title reveal" id="proof-title">Built by a team that understands attention at scale.</h2>
+        <h2 class="stats__title reveal" id="stats-title">Built by a team that understands attention at&nbsp;scale.</h2>
+        <div class="stats__grid">
+          <div class="stat reveal" style="--d:1">
+            <p class="stat__num"><span class="stat__value" data-count-from="100" data-count-to="800" aria-hidden="true">800</span><span class="stat__unit" aria-hidden="true">M+</span><span class="visually-hidden">800 million plus</span></p>
+            <p class="stat__label">views on content we’ve created</p>
+          </div>
+          <div class="stat reveal" style="--d:2">
+            <p class="stat__num"><span class="stat__value" data-count-from="100" data-count-to="700" aria-hidden="true">700</span><span class="stat__unit" aria-hidden="true">K+</span><span class="visually-hidden">700 thousand plus</span></p>
+            <p class="stat__label">followers across our work</p>
+          </div>
+        </div>
       </div>
-      <!-- Proof rail. Replace each .proof-slot with an approved screenshot/logo/video (see README). -->
-      <div class="rail" data-scene="rail">
-        <ul class="rail__track" role="list">
-          <li class="rail__item rail__name"><span class="rail__kicker">Content experience</span><span class="rail__person">Tai Lopez</span></li>
-          <li class="rail__item proof-slot"><svg class="icon" aria-hidden="true"><use href="#i-chart"/></svg><span>Analytics screenshot</span><em>Approved proof slot</em></li>
-          <li class="rail__item proof-slot proof-slot--tall"><svg class="icon" aria-hidden="true"><use href="#i-video"/></svg><span>Video example</span><em>Approved proof slot</em></li>
-          <li class="rail__item rail__name"><span class="rail__kicker">Content experience</span><span class="rail__person">Bear Grylls</span></li>
-          <li class="rail__item proof-slot"><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg><span>View-count screenshot</span><em>Approved proof slot</em></li>
-          <li class="rail__item proof-slot"><svg class="icon" aria-hidden="true"><use href="#i-building"/></svg><span>Client logo</span><em>Approved proof slot</em></li>
-          <li class="rail__item proof-slot proof-slot--tall"><svg class="icon" aria-hidden="true"><use href="#i-post"/></svg><span>Post example</span><em>Approved proof slot</em></li>
-          <li class="rail__item proof-slot"><svg class="icon" aria-hidden="true"><use href="#i-chart"/></svg><span>Analytics screenshot</span><em>Approved proof slot</em></li>
+    </section>
+
+    <!-- 2b. Selected work: hidden until everyone listed has agreed to be shown. Remove "hidden" to bring it back. -->
+    <!-- Portraits: add assets/people/<slug>.webp and list the slug in PEOPLE_PHOTOS in script.js.
+         People without a sourced photo show their initials. -->
+    <section class="people" id="people" aria-labelledby="people-title" hidden>
+      <div class="container">
+        <header class="people__head reveal">
+          <h2 class="people__title" id="people-title">Selected people we’ve worked&nbsp;with.</h2>
+          <p class="people__sub">Creators, founders and public figures across content, strategy and distribution.</p>
+        </header>
+      </div>
+      <div class="people__stage reveal" style="--d:1">
+        <ul class="people__list" role="list">
+            <li class="person" data-slug="tai-lopez">
+              <span class="person__photo" data-initials="TL"></span>
+              <span class="person__meta">
+                <span class="person__name">Tai Lopez</span>
+                <span class="person__tag"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Selected Work</span>
+              </span>
+            </li>
+            <li class="person" data-slug="bear-grylls">
+              <span class="person__photo" data-initials="BG"></span>
+              <span class="person__meta">
+                <span class="person__name">Bear Grylls</span>
+                <span class="person__tag"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Selected Work</span>
+              </span>
+            </li>
+            <li class="person" data-slug="sean-kanan">
+              <span class="person__photo" data-initials="SK"></span>
+              <span class="person__meta">
+                <span class="person__name">Sean Kanan</span>
+                <span class="person__tag"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Selected Work</span>
+              </span>
+            </li>
+            <li class="person" data-slug="niklas-pedde">
+              <span class="person__photo" data-initials="NP"></span>
+              <span class="person__meta">
+                <span class="person__name">Niklas Pedde</span>
+                <span class="person__tag"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Selected Work</span>
+              </span>
+            </li>
+            <li class="person" data-slug="danny-morrell">
+              <span class="person__photo" data-initials="DM"></span>
+              <span class="person__meta">
+                <span class="person__name">Danny Morrell</span>
+                <span class="person__tag"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Selected Work</span>
+              </span>
+            </li>
+            <li class="person" data-slug="roslan-benedia">
+              <span class="person__photo" data-initials="RB"></span>
+              <span class="person__meta">
+                <span class="person__name">Roslan Benedia</span>
+                <span class="person__tag"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Selected Work</span>
+              </span>
+            </li>
+            <li class="person" data-slug="renzo-guevara">
+              <span class="person__photo" data-initials="RG"></span>
+              <span class="person__meta">
+                <span class="person__name">Renzo Guevara</span>
+                <span class="person__tag"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Selected Work</span>
+              </span>
+            </li>
+            <li class="person" data-slug="ibrahim-ansari">
+              <span class="person__photo" data-initials="IA"></span>
+              <span class="person__meta">
+                <span class="person__name">Ibrahim Ansari</span>
+                <span class="person__tag"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Selected Work</span>
+              </span>
+            </li>
+            <li class="person" data-slug="ramin-popal">
+              <span class="person__photo" data-initials="RP"></span>
+              <span class="person__meta">
+                <span class="person__name">Ramin Popal</span>
+                <span class="person__tag"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Selected Work</span>
+              </span>
+            </li>
+            <li class="person" data-slug="tim-gray">
+              <span class="person__photo" data-initials="TG"></span>
+              <span class="person__meta">
+                <span class="person__name">Tim Gray</span>
+                <span class="person__tag"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Selected Work</span>
+              </span>
+            </li>
+            <li class="person" data-slug="joseph-shalaby">
+              <span class="person__photo" data-initials="JS"></span>
+              <span class="person__meta">
+                <span class="person__name">Joseph Shalaby</span>
+                <span class="person__tag"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>Selected Work</span>
+              </span>
+            </li>
         </ul>
+        <div class="people__marquee" data-anim aria-hidden="true"></div>
       </div>
     </section>
 
@@ -491,7 +587,7 @@
           <li class="flow__step"><span class="flow__icon"><svg class="icon" aria-hidden="true"><use href="#i-eye"/></svg></span><span class="flow__name">Views</span></li>
         </ol>
         <!-- Case studies: replace each slot with an approved Input → Asset → Result example (see README). -->
-        <ul class="cases" role="list">
+        <ul class="cases" role="list" hidden>
           <li class="case proof-slot reveal" style="--d:1"><svg class="icon" aria-hidden="true"><use href="#i-image"/></svg><span>Case study</span><em>Approved example slot</em></li>
           <li class="case proof-slot reveal" style="--d:2"><svg class="icon" aria-hidden="true"><use href="#i-image"/></svg><span>Case study</span><em>Approved example slot</em></li>
           <li class="case proof-slot reveal" style="--d:3"><svg class="icon" aria-hidden="true"><use href="#i-image"/></svg><span>Case study</span><em>Approved example slot</em></li>
@@ -677,9 +773,10 @@
     </div>
     <div class="container footer__legal">
       <p>© 2026 OmniReach Studios. All rights reserved.</p>
+      <p class="footer__credits" hidden>Photos: Bear Grylls by <a href="https://commons.wikimedia.org/wiki/File:Bear_Grylls_2014.jpg" target="_blank" rel="noopener">The National Churches Trust</a>, <a href="https://creativecommons.org/licenses/by/2.0/" target="_blank" rel="noopener">CC BY 2.0</a>. Sean Kanan by <a href="https://commons.wikimedia.org/wiki/File:Sean_Kanan_-_Creep_I.E._Con_Aftermath_2025.jpg" target="_blank" rel="noopener">Kevin Paul</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. Cropped and desaturated.</p>
     </div>
   </footer>
 
-  <script src="script.js?v=202610180147" defer></script>
+  <script src="script.js?v=202610280125" defer></script>
 </body>
 </html>

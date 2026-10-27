@@ -260,6 +260,41 @@
       vset.items.push({ node: pk, path: vsvg.querySelector('#' + id), dur: 3600, delay: -k * 900, fade: [0.12, 0.85], rest: 0.35 + k * 0.12 });
     });
     startFlow(vset);
+
+    /* Click-to-play: the Vimeo player (about 1 MB of scripts) loads only when someone asks for the video. */
+    var playLink = $('.vsl__play', vslFrame);
+    if (playLink) {
+      var vimeoId = playLink.getAttribute('data-vimeo');
+      var warmed = false;
+      var warm = function () {
+        if (warmed) return;
+        warmed = true;
+        ['https://player.vimeo.com', 'https://i.vimeocdn.com', 'https://f.vimeocdn.com'].forEach(function (origin) {
+          var l = document.createElement('link');
+          l.rel = 'preconnect'; l.href = origin; l.crossOrigin = '';
+          document.head.appendChild(l);
+        });
+      };
+      playLink.addEventListener('pointerenter', warm);
+      playLink.addEventListener('focus', warm);
+      playLink.addEventListener('touchstart', warm, { passive: true });
+      playLink.addEventListener('click', function (e) {
+        e.preventDefault();
+        var iframe = document.createElement('iframe');
+        iframe.src = 'https://player.vimeo.com/video/' + vimeoId + '?badge=0&autopause=0&autoplay=1&dnt=1&player_id=0&app_id=58479';
+        iframe.title = 'OmniReach overview video';
+        iframe.allow = 'autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share';
+        iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+        iframe.setAttribute('allowfullscreen', '');
+        // stop the preview animation and swap the player in
+        (vset.items || []).forEach(function (it) { (it.anims || []).forEach(function (a) { a.cancel(); }); });
+        flowSets = flowSets.filter(function (s) { return s !== vset; });
+        vslFrame.innerHTML = '';
+        vslFrame.classList.add('is-playing');
+        vslFrame.appendChild(iframe);
+        iframe.focus();
+      });
+    }
   }
 
   if (gtmBox) {
@@ -313,16 +348,6 @@
   }
 
   if (!reduced) {
-    // 2. proof rail drifts sideways as you scroll
-    var track = $('.rail__track'), railW = 0, trackW = 0;
-    addScene('[data-scene="rail"]', {
-      measure: function () { railW = this.el.clientWidth; trackW = track.scrollWidth; },
-      render: function (p) {
-        var over = trackW - railW;
-        track.style.transform = 'translate3d(' + (over > 0 ? -over * p : 0).toFixed(1) + 'px,0,0)';
-      }
-    });
-
     // 4. Founder B accumulates signals; Founder A stays still
     var rungs = $$('.ladder:not(.ladder--static) li'), lastCount = -1;
     addScene('.ladder:not(.ladder--static)', {
@@ -470,6 +495,97 @@
       });
     }, { rootMargin: '120px 0px' });
     $$('[data-anim]').forEach(function (n) { animIO.observe(n); });
+  }
+
+  /* ---------- Big numbers count up once when they scroll into view ---------- */
+  var counters = $$('.stat__value[data-count-to]');
+  if (counters.length && !reduced && 'IntersectionObserver' in window) {
+    var countUp = function (node) {
+      var from = Number(node.getAttribute('data-count-from')) || 0, to = Number(node.getAttribute('data-count-to'));
+      var start = null, dur = 2200;
+      var step = function (now) {
+        if (start === null) start = now;
+        var t = Math.min(1, (now - start) / dur);
+        var eased = 1 - Math.pow(1 - t, 4); // fast start, gentle landing
+        node.textContent = String(Math.round(from + (to - from) * eased));
+        if (t < 1) requestAnimationFrame(step);
+      };
+      node.textContent = String(from);
+      requestAnimationFrame(step);
+    };
+    counters.forEach(function (c) { c.textContent = c.getAttribute('data-count-from') || '0'; });
+    var countIO = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        countIO.unobserve(en.target);
+        countUp(en.target);
+      });
+    }, { threshold: 0.6 });
+    counters.forEach(function (c) { countIO.observe(c); });
+  }
+
+  /* ---------- Selected people marquee ----------
+     The real list (.people__list) stays in the DOM for screen readers and as the static fallback.
+     Visual rows are clones: two rows on desktop (opposite directions), one row on phones.
+     Each row repeats its group until it is wider than the screen, then slides by exactly one
+     group width, so the loop is seamless. Speed is constant in px/s whatever the row length. */
+  // Portraits that have been sourced and approved (assets/people/<slug>.webp).
+  var PEOPLE_PHOTOS = {
+    'bear-grylls': { focus: '50% 50%' }, // Wikimedia Commons, The National Churches Trust, CC BY 2.0
+    'sean-kanan': { focus: '50% 50%' }   // Wikimedia Commons, Kevin Paul, CC BY 4.0
+  };
+  var peopleSec = $('.people');
+  if (peopleSec && !peopleSec.hidden) {
+    var personItems = $$('.people__list .person', peopleSec);
+    personItems.forEach(function (li) {
+      var slugName = li.getAttribute('data-slug'), photo = PEOPLE_PHOTOS[slugName];
+      if (!photo) return;
+      var img = document.createElement('img');
+      img.src = 'assets/people/' + slugName + '.webp';
+      img.alt = $('.person__name', li).textContent;
+      img.width = 160; img.height = 160;
+      img.loading = 'lazy'; img.decoding = 'async';
+      if (photo.focus) img.style.setProperty('--focus', photo.focus);
+      $('.person__photo', li).appendChild(img);
+    });
+    var marquee = $('.people__marquee', peopleSec);
+    var phoneRows = window.matchMedia('(max-width: 760px)');
+    var buildPeople = function () {
+      if (reduced) return; // the static, wrapped list stays visible
+      peopleSec.classList.add('is-marquee');
+      marquee.innerHTML = '';
+      var half = Math.ceil(personItems.length / 2);
+      var rows = phoneRows.matches ? [personItems] : [personItems.slice(0, half), personItems.slice(half)];
+      var speed = phoneRows.matches ? 26 : 30; // px per second
+      rows.forEach(function (rowItems, r) {
+        var row = document.createElement('div');
+        row.className = 'marquee-row' + (r % 2 ? ' marquee-row--rev' : '');
+        var trackEl = document.createElement('div');
+        trackEl.className = 'marquee-row__track';
+        var group = document.createElement('ul');
+        group.className = 'marquee-row__group';
+        group.setAttribute('role', 'list');
+        rowItems.forEach(function (li) { group.appendChild(li.cloneNode(true)); });
+        trackEl.appendChild(group);
+        row.appendChild(trackEl);
+        marquee.appendChild(row);
+        var gw = group.getBoundingClientRect().width;
+        if (!gw) return;
+        var copies = Math.ceil(row.clientWidth / gw) + 1;
+        for (var c = 0; c < copies; c++) trackEl.appendChild(group.cloneNode(true));
+        trackEl.style.setProperty('--shift', gw.toFixed(1) + 'px');
+        trackEl.style.setProperty('--dur', (gw / speed).toFixed(1) + 's');
+      });
+    };
+    buildPeople();
+    var peopleTimer, peopleW = window.innerWidth;
+    window.addEventListener('resize', function () {
+      if (window.innerWidth === peopleW) return; // ignore phone address-bar height changes
+      peopleW = window.innerWidth;
+      clearTimeout(peopleTimer);
+      peopleTimer = setTimeout(buildPeople, 200);
+    });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(buildPeople);
   }
 
   /* ---------- Platforms: link roles to orbit nodes ---------- */
